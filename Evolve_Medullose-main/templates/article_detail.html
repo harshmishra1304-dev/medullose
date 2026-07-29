@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<!-- NEW: Light-mode container -->
+<div class="container mx-auto max-w-3xl p-4 md:p-8 lg:p-12">
+
+    <!-- 
+      NEW: Re-skinned white card for content
+    -->
+    <div class="bg-white p-6 md:p-10 rounded-lg shadow-lg border border-brand-stone border-opacity-20">
+        
+        <!-- Back Link -->
+        <!-- NEW: Blue link (as requested) -->
+        <a href="{{ url_for('library') }}" class="text-sm text-blue-600 hover:underline mb-4 inline-block">&larr; Back to Library</a>
+        
+        <!-- Header -->
+        <!-- NEW: Golden accent-colored category tag -->
+        <span class="inline-block bg-brand-golden bg-opacity-10 text-brand-golden text-xs font-semibold px-3 py-1 rounded-full mb-3">{{ article.category }}</span>
+        <!-- NEW: Forest heading -->
+        <h1 class="text-3xl font-bold text-brand-forest mb-6">{{ article.title }}</h1>
+
+        <!-- Medical Disclaimer Box -->
+        <!-- NEW: Red signal color (as requested) -->
+        <div class="bg-red-100 border-l-4 border-red-500 text-red-800 p-4 rounded-r-lg mb-8" role="alert">
+            <h4 class="font-bold">Medical Disclaimer</h4>
+            <p class="text-sm">This article is for informational purposes only and does not constitute medical advice. Always consult a professional healthcare provider with any questions you may have regarding a medical condition.</p>
+        </div>
+
+        <!-- 
+          Article Content
+          NEW: Applies the 'prose-custom' class for light-mode formatting
+        -->
+        <div class="prose prose-custom max-w-none">
+            {{ article.content_html | safe }}
+        </div>
+
+    </div>
+</div>
+{% endblock %}

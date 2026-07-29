@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto max-w-4xl p-4 md:p-8 lg:p-12">
+    <h1 class="text-3xl font-bold text-brand-forest mb-8">My Appointments</h1>
+
+    <div class="bg-white p-6 rounded-lg shadow-lg border border-brand-stone border-opacity-20">
+        
+        {% if appointments %}
+            <div class="space-y-6">
+                {% for appt in appointments %}
+                    <div class="bg-brand-cream p-4 rounded-lg flex flex-col md:flex-row justify-between md:items-center shadow-md">
+                        
+                        <div class="mb-4 md:mb-0">
+                            <h3 class="text-xl font-semibold text-brand-forest">Dr. {{ appt.doctor.name }}</h3>
+                            <p class="text-brand-golden font-medium mb-2">{{ appt.doctor.specialty }}</p>
+                            
+                            <p class="text-brand-olive">
+                                <span class="font-semibold text-brand-forest">Date:</span> {{ appt.appointment_datetime.strftime('%A, %B %d, %Y') }}
+                            </p>
+                            <p class="text-brand-olive">
+                                <span class="font-semibold text-brand-forest">Time:</span> {{ appt.appointment_datetime.strftime('%I:%M %p') }}
+                            </p>
+                            {% if appt.reason %}
+                                <p class="text-brand-olive text-sm mt-2">
+                                    <span class="font-semibold text-brand-forest">Reason:</span> {{ appt.reason }}
+                                </p>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center space-x-3">
+                            
+                            <a href="{{ url_for('video_consultation', room='Appointment-' ~ appt.id) }}" 
+                               class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                               📹 Join Video
+                            </a>
+
+                            <form method="POST" action="{{ url_for('cancel_appointment', appointment_id=appt.id) }}">
+                                <button type="submit" 
+                                        class="bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200"
+                                        onclick="return confirm('Are you sure you want to cancel this appointment?');">
+                                    Cancel
+                                </button>
+                            </form>
+                        </div>
+
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-center py-8">
+                <p class="text-brand-olive mb-4">You have no upcoming appointments.</p>
+                <a href="{{ url_for('find_doctors') }}" class="inline-block bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition duration-200">
+                    Find a Doctor
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

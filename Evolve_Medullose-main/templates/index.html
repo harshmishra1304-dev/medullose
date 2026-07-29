@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - Medullose{% endblock %}
+
+{% block content %}
+<div class="flex-1 flex flex-col h-full p-4 md:p-8 lg:p-12 " style="height: calc(100vh - 64px);">
+    
+    <div id="chat-window" class="flex-1 bg-[#EBF4DD] rounded-lg shadow-lg overflow-y-auto p-6 space-y-4 mb-4 border border-brand-stone border-opacity-50">
+        </div>
+
+    <div id="loading-indicator" class="hidden flex items-center justify-center mb-2 space-x-2">
+        <span class="text-sm text-brand-olive font-semibold">Medullose is thinking...</span>
+        <div class="h-2 w-2 bg-brand-olive rounded-full animate-bounce" style="animation-delay: -0.3s;"></div>
+        <div class="h-2 w-2 bg-brand-olive rounded-full animate-bounce" style="animation-delay: -0.15s;"></div>
+        <div class="h-2 w-2 bg-brand-olive rounded-full animate-bounce"></div>
+    </div>
+
+    <form id="chat-form" 
+          class="flex items-center space-x-3"
+          data-ask-url="{{ url_for('ask') }}"
+          data-history-url="{{ url_for('get_history') }}"
+          data-clear-url="{{ url_for('clear_chat') }}"
+          data-user-name="{{ current_user.name }}">
+        
+        <button type="button" id="clear-chat-btn" class="p-3 bg-red-100 hover:bg-red-200 text-red-700 border border-red-300 rounded-lg transition" title="Clear History">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+
+        <input type="text" id="message-input" 
+               placeholder="Type your symptoms here..." 
+               autocomplete="off" 
+               class="flex-1 p-3 bg-white border border-brand-stone rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-olive text-brand-forest placeholder-brand-stone" autofocus>
+        
+        <button type="submit" id="send-button" class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg shadow-md transition duration-200 ease-in-out">
+            Send
+        </button>
+    </form>
+</div>
+
+<script>
+    const chatWindow = document.getElementById('chat-window');
+    const chatForm = document.getElementById('chat-form');
+    const messageInput = document.getElementById('message-input');
+    const sendButton = document.getElementById('send-button');
+    const loadingIndicator = document.getElementById('loading-indicator');
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+
+    const ASK_URL = chatForm.dataset.askUrl;
+    const HISTORY_URL = chatForm.dataset.historyUrl;
+    const CLEAR_URL = chatForm.dataset.clearUrl;
+    const currentUserName = chatForm.dataset.userName;
+
+    function addMessageToChat(sender, text) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex w-full mb-3';
+
+        const bubble = document.createElement('div');
+        bubble.className = 'max-w-[85%] p-3 rounded-lg shadow-sm';
+
+        if (sender === 'user') {
+            // User: Blue Bubble
+            messageDiv.classList.add('justify-end');
+            bubble.classList.add('bg-blue-600', 'text-white');
+            bubble.textContent = text;
+        } else {
+            // Assistant: Rustic Gray/Greenish Bubble
+            messageDiv.classList.add('justify-start');
+            bubble.classList.add('bg-gray-100', 'text-brand-forest', 'border', 'border-brand-stone', 'border-opacity-30');
+            
+            // Markdown rendering
+            bubble.innerHTML = marked.parse(text);
+            bubble.classList.add('prose', 'prose-custom', 'prose-sm', 'max-w-none'); 
+        }
+
+        messageDiv.appendChild(bubble);
+        chatWindow.appendChild(messageDiv);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    function setLoading(isLoading) {
+        if (isLoading) {
+            loadingIndicator.classList.remove('hidden');
+            sendButton.disabled = true;
+            sendButton.classList.add('opacity-50', 'cursor-not-allowed');
+        } else {
+            loadingIndicator.classList.add('hidden');
+            sendButton.disabled = false;
+            sendButton.classList.remove('opacity-50', 'cursor-not-allowed');
+            messageInput.focus();
+        }
+    }
+
+    async function handleChatSubmit(e) {
+        e.preventDefault();
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        addMessageToChat('user', message);
+        messageInput.value = '';
+        setLoading(true);
+
+        try {
+            const response = await fetch(ASK_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: message }),
+            });
+            const data = await response.json();
+            if (data.error) throw new Error(data.error);
+            addMessageToChat('assistant', data.answer);
+        } catch (error) {
+            addMessageToChat('assistant', `**Error:** ${error.message}`);
+        } finally {
+            setLoading(false);
+        }
+    }
+
+    async function loadHistory() {
+        try {
+            const response = await fetch(HISTORY_URL);
+            const history = await response.json();
+            if (history.length > 0) {
+                history.forEach(msg => addMessageToChat(msg.role, msg.content));
+            } else {
+                addMessageToChat('assistant', `Welcome, ${currentUserName}! Medullose is ready.`);
+            }
+        } catch (e) {}
+    }
+
+    async function handleClearChat() {
+        if (!confirm("Clear chat history?")) return;
+        await fetch(CLEAR_URL, { method: 'POST' });
+        chatWindow.innerHTML = '';
+        addMessageToChat('assistant', `Chat history cleared.`);
+    }
+
+    chatForm.addEventListener('submit', handleChatSubmit);
+    if(clearChatBtn) clearChatBtn.addEventListener('click', handleClearChat);
+    loadHistory();
+</script>
+{% endblock %}
